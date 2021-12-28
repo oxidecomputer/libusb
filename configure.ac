@@ -108,9 +108,15 @@ case $host in
 	platform=posix
 	;;
 *-solaris*)
-	AC_MSG_RESULT([SunOS])
-	backend=sunos
-	platform=posix
+	if test "x`uname -o`" = xillumos; then
+		AC_MSG_RESULT([illumos])
+		backend=illumos
+		platform=posix
+	else
+		AC_MSG_RESULT([SunOS])
+		backend=sunos
+		platform=posix
+	fi
 	;;
 *-cygwin*)
 	AC_MSG_RESULT([Windows (using Cygwin)])
@@ -183,7 +189,7 @@ linux)
 		AC_CHECK_HEADER([sys/socket.h], [], [AC_MSG_ERROR([Linux socket header not found])])
 	fi
 	;;
-sunos)
+sunos|illumos)
 	LIBS="${LIBS} -ldevinfo"
 	;;
 windows)
@@ -235,7 +241,7 @@ if test "x$platform" = xposix; then
 fi
 
 dnl eventfd support
-if test "x$backend" = xlinux || test "x$backend" = xsunos; then
+if test "x$backend" = xlinux || test "x$backend" = xsunos || test "x$backend" = xillumos; then
 	AC_ARG_ENABLE([eventfd],
 		[AS_HELP_STRING([--enable-eventfd], [use eventfd for signalling [default=auto]])],
 		[use_eventfd=$enableval],
@@ -273,7 +279,7 @@ if test "x$backend" = xlinux || test "x$backend" = xsunos; then
 fi
 
 dnl timerfd support
-if test "x$backend" = xlinux || test "x$backend" = xsunos; then
+if test "x$backend" = xlinux || test "x$backend" = xsunos || test "x$backend" = xillumos; then
 	AC_ARG_ENABLE([timerfd],
 		[AS_HELP_STRING([--enable-timerfd], [use timerfd for timing [default=auto]])],
 		[use_timerfd=$enableval],
@@ -364,6 +370,7 @@ AM_CONDITIONAL([OS_NETBSD], [test "x$backend" = xnetbsd])
 AM_CONDITIONAL([OS_NULL], [test "x$backend" = xnull])
 AM_CONDITIONAL([OS_OPENBSD], [test "x$backend" = xopenbsd])
 AM_CONDITIONAL([OS_SUNOS], [test "x$backend" = xsunos])
+AM_CONDITIONAL([OS_ILLUMOS], [test "x$backend" = xillumos])
 AM_CONDITIONAL([OS_WINDOWS], [test "x$backend" = xwindows])
 AM_CONDITIONAL([PLATFORM_POSIX], [test "x$platform" = xposix])
 AM_CONDITIONAL([PLATFORM_WINDOWS], [test "x$platform" = xwindows])
