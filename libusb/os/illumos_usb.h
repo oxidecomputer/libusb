@@ -50,6 +50,7 @@ typedef struct illumos_device_handle_priv {
 typedef	struct illumos_transfer_priv {
 	struct aiocb		aiocb;
 	struct libusb_transfer	*transfer;
+	int			ugen_status;
 } illumos_xfer_priv_t;
 
 struct node_args {
