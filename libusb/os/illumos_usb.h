@@ -1,7 +1,6 @@
 /*
- *
  * Copyright (c) 2016, Oracle and/or its affiliates.
- * Copyright 2021 Oxide Computer Company
+ * Copyright 2022 Oxide Computer Company
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -25,32 +24,41 @@
 #include <pthread.h>
 #include "libusbi.h"
 
-#define	READ	0
-#define	WRITE	1
+typedef enum illumos_iodir {
+	ILLUMOS_DIR_READ,
+	ILLUMOS_DIR_WRITE,
+} illumos_iodir_t;
 
-typedef struct illumos_device_priv {
+typedef struct illumos_dev_priv {
 	uint8_t	cfgvalue;		/* active config value */
 	uint8_t	*raw_cfgdescr;		/* active config descriptor */
 	char	*ugenpath;		/* name of the ugen(4) node */
 	char	*phypath;		/* physical path */
 } illumos_dev_priv_t;
 
-typedef	struct endpoint {
+typedef struct illumos_ep_priv {
 	int datafd;	/* data file */
 	int statfd;	/* state file */
 } illumos_ep_priv_t;
 
-typedef struct illumos_device_handle_priv {
+typedef struct illumos_dev_handle_priv {
 	uint8_t			altsetting[USB_MAXINTERFACES];	/* a interface's alt */
 	uint8_t			config_index;
 	illumos_ep_priv_t		eps[USB_MAXENDPOINTS];
 	illumos_dev_priv_t	*dpriv; /* device private */
 } illumos_dev_handle_priv_t;
 
-typedef	struct illumos_transfer_priv {
+typedef enum illumos_xfer_type {
+	ILLUMOS_XFT_AIO,
+	ILLUMOS_XFT_CTRL,
+} illumos_xfer_type_t;
+
+typedef struct illumos_transfer_priv {
+	illumos_xfer_type_t	type;
 	struct aiocb		aiocb;
 	struct libusb_transfer	*transfer;
 	int			ugen_status;
+	size_t			ctrl_len;
 } illumos_xfer_priv_t;
 
 struct node_args {
