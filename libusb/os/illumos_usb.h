@@ -61,11 +61,14 @@ typedef struct illumos_transfer_priv {
 	size_t			ctrl_len;
 } illumos_xfer_priv_t;
 
+#define	MAX_BUSES		256
+
 struct node_args {
 	struct libusb_context	*ctx;
 	struct discovered_devs	**discdevs;
 	const char		*last_ugenpath;
 	di_devlink_handle_t	dlink_hdl;
+	char			*buses[MAX_BUSES];
 };
 
 struct devlink_cbarg {
