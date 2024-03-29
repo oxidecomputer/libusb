@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2016, Oracle and/or its affiliates.
- * Copyright 2022 Oxide Computer Company
+ * Copyright 2024 Oxide Computer Company
  *
  * This library is free software; you can redistribute it and/or
  * modify it under the terms of the GNU Lesser General Public
@@ -30,10 +30,23 @@ typedef enum illumos_iodir {
 } illumos_iodir_t;
 
 typedef struct illumos_dev_priv {
-	uint8_t	cfgvalue;		/* active config value */
-	uint8_t	*raw_cfgdescr;		/* active config descriptor */
-	char	*ugenpath;		/* name of the ugen(4) node */
-	char	*phypath;		/* physical path */
+	/*
+	 * Active configuration descriptor and value:
+	 */
+	uint8_t			*idp_raw_cfgdescr;
+	uint8_t			idp_cfgvalue;
+
+	/*
+	 * /dev path of the directory that contains the ugen(4D) minor nodes
+	 * for this device; e.g., "/dev/usb/483.3754/0".
+	 */
+	char			*idp_ugenpath;
+
+	/*
+	 * The physical /devices path of this device, without a minor node
+	 * suffix.
+	 */
+	char			*idp_physpath;
 } illumos_dev_priv_t;
 
 typedef struct illumos_ep_priv {
@@ -42,10 +55,10 @@ typedef struct illumos_ep_priv {
 } illumos_ep_priv_t;
 
 typedef struct illumos_dev_handle_priv {
-	uint8_t			altsetting[USB_MAXINTERFACES];	/* a interface's alt */
-	uint8_t			config_index;
-	illumos_ep_priv_t		eps[USB_MAXENDPOINTS];
-	illumos_dev_priv_t	*dpriv; /* device private */
+	uint8_t			ihp_altsetting[USB_MAXINTERFACES];
+	uint8_t			ihp_config_index;
+	illumos_ep_priv_t	ihp_eps[USB_MAXENDPOINTS];
+	illumos_dev_priv_t	*ihp_idp;
 } illumos_dev_handle_priv_t;
 
 typedef enum illumos_xfer_type {
@@ -63,28 +76,34 @@ typedef struct illumos_transfer_priv {
 
 #define	MAX_BUSES		256
 
-struct node_args {
-	struct libusb_context	*ctx;
-	struct discovered_devs	**discdevs;
-	const char		*last_ugenpath;
-	di_devlink_handle_t	dlink_hdl;
-	char			*buses[MAX_BUSES];
-};
+typedef struct illumos_get_device_list {
+	struct libusb_context	*gdl_ctx;
+	struct discovered_devs	**gdl_discdevs;
+	di_devlink_handle_t	gdl_devlink;
+	char			*gdl_buses[MAX_BUSES];
+	int			gdl_error;
+} illumos_get_device_list_t;
 
-struct devlink_cbarg {
-	struct node_args	*nargs;	/* di node walk arguments */
-	di_node_t		myself;	/* the di node */
-	di_minor_t		minor;
-};
+typedef struct illumos_make_session_id {
+	uint64_t		msi_session_id;
+	uint8_t			msi_bus_number;
+	int			msi_is_root_hub;
+} illumos_make_session_id_t;
 
-typedef struct walk_link {
-	char *path;
-	int len;
-	char **linkpp;
-} walk_link_t;
+typedef struct illumos_gdl_find_hubs {
+	struct libusb_context	*dlfh_ctx;
+	int			dlfh_is_hub;
+} illumos_gdl_find_hubs_t;
+
+typedef struct illumos_gdl_find_ugenpath {
+	const char		*fup_physpath;
+	int			fup_len;
+	struct libusb_device	*fup_dev;
+	illumos_dev_priv_t	fup_idp;
+} illumos_gdl_find_ugenpath_t;
 
 /* AIO callback args */
-struct aio_callback_args{
+struct aio_callback_args {
 	struct libusb_transfer *transfer;
 	struct aiocb aiocb;
 };
