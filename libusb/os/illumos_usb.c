@@ -1452,7 +1452,7 @@ illumos_submit_ctrl_on_default(struct libusb_transfer *xfer)
 		 * As per ugen(4D), to perform a control-IN transfer we must
 		 * first write(2) the USB setup data.
 		 */
-		usbi_dbg(ctx, "IN request: write setup");
+		usbi_dbg(ctx, "control IN request: write setup");
 		if ((ret = illumos_usb_do_io(ctx, &ihp->ihp_eps[0], tpriv,
 		    data, LIBUSB_CONTROL_SETUP_SIZE, ILLUMOS_DIR_WRITE)) < 0) {
 			int e = errno;
@@ -1475,11 +1475,32 @@ illumos_submit_ctrl_on_default(struct libusb_transfer *xfer)
 
 	usbi_dbg(ctx, "%s request: data",
 	    dir == ILLUMOS_DIR_READ ? "IN" : "OUT");
-	ret = illumos_usb_do_io(ctx, &ihp->ihp_eps[0], tpriv, data, datalen, dir);
-	if (ret >= 0) {
-		tpriv->ctrl_len += ret;
+	ret = illumos_usb_do_io(ctx, &ihp->ihp_eps[0], tpriv, data, datalen,
+	    dir);
+	if (ret < 0) {
+		int e = errno;
+		usbi_err(ctx, "%s request: failed! error=%d",
+		    dir == ILLUMOS_DIR_READ ? "IN" : "OUT", e);
+		return (_errno_to_libusb(e));
 	}
 
+	if (dir == ILLUMOS_DIR_WRITE) {
+		if (ret < (ssize_t)LIBUSB_CONTROL_SETUP_SIZE) {
+			usbi_err(ctx, "%s request: control write shorter than "
+			    "setup size! (%d)\n",
+			    dir == ILLUMOS_DIR_READ ? "IN" : "OUT", (int)ret);
+			return (LIBUSB_ERROR_IO);
+		}
+
+		/*
+		 * For a control OUT transfer, we need to subtract the
+		 * size of the header we wrote before the data from the
+		 * caller.
+		 */
+		ret -= LIBUSB_CONTROL_SETUP_SIZE;
+	}
+
+	tpriv->ctrl_len += ret;
 	usbi_dbg(ctx, "Done: ctrl data bytes %zd", ret);
 	usbi_signal_transfer_completion(ixfer);
 	return (LIBUSB_SUCCESS);
